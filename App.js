@@ -42,7 +42,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const CARD_WIDTH = Math.floor((SCREEN_WIDTH - SCREEN_PADDING * 2 - GAP * 6) / 7);
 const CARD_HEIGHT = Math.floor(CARD_WIDTH * 1.45);
-const TABLEAU_OFFSET = Math.floor(CARD_HEIGHT * 0.35); // Espaço garantido no topo para cada carta
+const TABLEAU_OFFSET = Math.floor(CARD_HEIGHT * 0.35);
 
 export default function SolitaireGame() {
   const [stock, setStock] = useState([]);
@@ -293,12 +293,12 @@ export default function SolitaireGame() {
   );
 }
 
-// Componente da Carta focado em visibilidade máxima
+// Componente da Carta com o Naipe Centralizado e Grande
 const CardView = ({ card }) => (
   <View style={styles.card}>
-    <View style={styles.cardHeader}>
-      <Text style={[styles.cardText, { color: card.color }]}>{card.value}</Text>
-      <Text style={[styles.cardSuit, { color: card.color }]}>{card.suit}</Text>
+    <Text style={[styles.cardText, { color: card.color }]}>{card.value}</Text>
+    <View style={styles.centerContainer}>
+      <Text style={[styles.cardCenterSuit, { color: card.color }]}>{card.suit}</Text>
     </View>
   </View>
 );
@@ -346,23 +346,23 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     borderWidth: 1,
     borderColor: '#b0bec5',
-    padding: 1,
+    padding: 2,
     overflow: 'hidden',
   },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 2,
-    paddingTop: 1,
-  },
   cardText: {
-    fontSize: Math.floor(CARD_WIDTH * 0.48), // Número bem maior
+    fontSize: Math.floor(CARD_WIDTH * 0.42),
     fontWeight: '900',
-    lineHeight: Math.floor(CARD_WIDTH * 0.52),
+    lineHeight: Math.floor(CARD_WIDTH * 0.44),
+    paddingLeft: 2,
   },
-  cardSuit: {
-    fontSize: Math.floor(CARD_WIDTH * 0.42), // Naipe proporcional
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cardCenterSuit: {
+    fontSize: Math.floor(CARD_WIDTH * 0.65), // Naipe bem grande e centralizado
+    lineHeight: Math.floor(CARD_WIDTH * 0.68),
   },
   cardHolder: {
     width: CARD_WIDTH,
@@ -410,4 +410,3 @@ const styles = StyleSheet.create({
     right: 0,
   },
 });
-    
