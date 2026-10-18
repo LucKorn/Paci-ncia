@@ -42,7 +42,8 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const CARD_WIDTH = Math.floor((SCREEN_WIDTH - SCREEN_PADDING * 2 - GAP * 6) / 7);
 const CARD_HEIGHT = Math.floor(CARD_WIDTH * 1.45);
-const TABLEAU_OFFSET = Math.floor(CARD_HEIGHT * 0.35);
+// Deslocamento vertical garantido para expor todo o cabeçalho superior
+const TABLEAU_OFFSET = Math.floor(CARD_HEIGHT * 0.32);
 
 export default function SolitaireGame() {
   const [stock, setStock] = useState([]);
@@ -293,10 +294,15 @@ export default function SolitaireGame() {
   );
 }
 
-// Componente da Carta com o Naipe Centralizado e Grande
+// Componente da Carta ajustado para visibilidade completa
 const CardView = ({ card }) => (
   <View style={styles.card}>
-    <Text style={[styles.cardText, { color: card.color }]}>{card.value}</Text>
+    {/* Cabeçalho que fica SEMPRE visível na pilha */}
+    <View style={styles.cardHeader}>
+      <Text style={[styles.cardText, { color: card.color }]}>{card.value}</Text>
+      <Text style={[styles.cardTopSuit, { color: card.color }]}>{card.suit}</Text>
+    </View>
+    {/* Naipe central com tamanho equilibrado */}
     <View style={styles.centerContainer}>
       <Text style={[styles.cardCenterSuit, { color: card.color }]}>{card.suit}</Text>
     </View>
@@ -349,11 +355,20 @@ const styles = StyleSheet.create({
     padding: 2,
     overflow: 'hidden',
   },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 1,
+  },
   cardText: {
-    fontSize: Math.floor(CARD_WIDTH * 0.42),
+    fontSize: Math.floor(CARD_WIDTH * 0.35),
     fontWeight: '900',
-    lineHeight: Math.floor(CARD_WIDTH * 0.44),
-    paddingLeft: 2,
+    lineHeight: Math.floor(CARD_WIDTH * 0.38),
+  },
+  cardTopSuit: {
+    fontSize: Math.floor(CARD_WIDTH * 0.32),
+    lineHeight: Math.floor(CARD_WIDTH * 0.35),
   },
   centerContainer: {
     flex: 1,
@@ -361,8 +376,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cardCenterSuit: {
-    fontSize: Math.floor(CARD_WIDTH * 0.65), // Naipe bem grande e centralizado
-    lineHeight: Math.floor(CARD_WIDTH * 0.68),
+    fontSize: Math.floor(CARD_WIDTH * 0.45), // Tamanho reduzido para não cortar
+    lineHeight: Math.floor(CARD_WIDTH * 0.48),
   },
   cardHolder: {
     width: CARD_WIDTH,
