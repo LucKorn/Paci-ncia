@@ -13,10 +13,10 @@ import {
 const SUITS = ['♠', '♥', '♦', '♣'];
 const VALUES = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
 
-// Helper para saber a cor da carta
-const getSuitColor = (suit) => (suit === '♥' || suit === '♦' ? 'red' : 'black');
+// Helper para cor da carta
+const getSuitColor = (suit) => (suit === '♥' || suit === '♦' ? '#d32f2f' : '#1a1a1a');
 
-// Criar e embaralhar o baralho
+// Criar e embaralhar o baralho (Fisher-Yates)
 const createDeck = () => {
   let deck = [];
   let id = 1;
@@ -26,13 +26,12 @@ const createDeck = () => {
         id: id++,
         suit,
         value: VALUES[valueIndex],
-        valueNum: valueIndex + 1, // A=1, K=13
+        valueNum: valueIndex + 1,
         color: getSuitColor(suit),
         faceUp: false,
       });
     }
   }
-  // Embaralhar (Fisher-Yates)
   for (let i = deck.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [deck[i], deck[j]] = [deck[j], deck[i]];
@@ -40,33 +39,37 @@ const createDeck = () => {
   return deck;
 };
 
+// Cálculo dinâmico para preencher exatamente a tela
+const SCREEN_PADDING = 8;
+const GAP = 3;
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+// Largura da carta calculada para caber 7 colunas perfeitamente na tela
+const CARD_WIDTH = Math.floor((SCREEN_WIDTH - SCREEN_PADDING * 2 - GAP * 6) / 7);
+const CARD_HEIGHT = Math.floor(CARD_WIDTH * 1.42);
+
 export default function SolitaireGame() {
   const [stock, setStock] = useState([]);
   const [waste, setWaste] = useState([]);
   const [foundations, setFoundations] = useState([[], [], [], []]);
   const [tableau, setTableau] = useState([[], [], [], [], [], [], []]);
-  const [selectedCard, setSelectedCard] = useState(null); // { source: 'tableau' | 'waste', colIndex, cardIndex, card }
+  const [selectedCard, setSelectedCard] = useState(null);
 
-  // Iniciar novo jogo
   const startNewGame = () => {
     const deck = createDeck();
     let deckIndex = 0;
 
-    // Distribuir no Tableau (Mesa)
     const newTableau = [[], [], [], [], [], [], []];
     for (let i = 0; i < 7; i++) {
       for (let j = 0; j <= i; j++) {
         const card = deck[deckIndex++];
-        if (j === i) card.faceUp = true; // Última carta de cada coluna virada para cima
+        if (j === i) card.faceUp = true;
         newTableau[i].push(card);
       }
     }
 
-    // O restante vai para o Stock
-    const newStock = deck.slice(deckIndex);
-
     setTableau(newTableau);
-    setStock(newStock);
+    setStock(deck.slice(deckIndex));
     setWaste([]);
     setFoundations([[], [], [], []]);
     setSelectedCard(null);
@@ -76,14 +79,12 @@ export default function SolitaireGame() {
     startNewGame();
   }, []);
 
-  // Comprar carta do Stock
   const handleStockClick = () => {
     if (stock.length > 0) {
       const nextCard = { ...stock[stock.length - 1], faceUp: true };
       setWaste([...waste, nextCard]);
       setStock(stock.slice(0, stock.length - 1));
     } else if (waste.length > 0) {
-      // Reciclar o waste para o stock
       const newStock = waste.reverse().map((card) => ({ ...card, faceUp: false }));
       setStock(newStock);
       setWaste([]);
@@ -91,18 +92,15 @@ export default function SolitaireGame() {
     setSelectedCard(null);
   };
 
-  // Selecionar carta ou mover para Tableau
   const handleTableauCardClick = (colIndex, cardIndex) => {
     const col = tableau[colIndex];
     const clickedCard = col[cardIndex];
 
-    // Se já temos uma carta selecionada, tentar mover para esta coluna
     if (selectedCard) {
       moveSelectedCardToTableau(colIndex);
       return;
     }
 
-    // Se a carta estiver virada para baixo e for a última, vira para cima
     if (clickedCard && !clickedCard.faceUp && cardIndex === col.length - 1) {
       const updatedTableau = [...tableau];
       updatedTableau[colIndex][cardIndex].faceUp = true;
@@ -110,7 +108,6 @@ export default function SolitaireGame() {
       return;
     }
 
-    // Selecionar conjunto de cartas
     if (clickedCard && clickedCard.faceUp) {
       setSelectedCard({
         source: 'tableau',
@@ -121,7 +118,6 @@ export default function SolitaireGame() {
     }
   };
 
-  // Mover carta selecionada para uma coluna do Tableau
   const moveSelectedCardToTableau = (targetColIndex) => {
     if (!selectedCard) return;
 
@@ -137,9 +133,6 @@ export default function SolitaireGame() {
 
     const firstSourceCard = sourceCards[0];
 
-    // Regras do Solitaire:
-    // 1. Coluna vazia só aceita Rei (K / valueNum === 13)
-    // 2. Coluna ocupada precisa ser de cor oposta e valor numérico imediatamente inferior (ex: 9 vermelho sob 10 preto)
     const isValidMove =
       (!targetCard && firstSourceCard.valueNum === 13) ||
       (targetCard &&
@@ -149,7 +142,6 @@ export default function SolitaireGame() {
     if (isValidMove) {
       const newTableau = [...tableau];
 
-      // Remove da origem
       if (selectedCard.source === 'waste') {
         setWaste(waste.slice(0, waste.length - 1));
       } else {
@@ -159,20 +151,16 @@ export default function SolitaireGame() {
         );
       }
 
-      // Adiciona ao destino
       newTableau[targetColIndex] = [...newTableau[targetColIndex], ...sourceCards];
-
       setTableau(newTableau);
     }
 
     setSelectedCard(null);
   };
 
-  // Mover para as Pilhas de Fundação (Ás até Rei por naipe)
   const handleFoundationClick = (foundationIndex) => {
     if (!selectedCard) return;
 
-    // Só é possível mover 1 carta por vez para a Fundação
     if (
       selectedCard.source === 'tableau' &&
       selectedCard.cardIndex !== tableau[selectedCard.colIndex].length - 1
@@ -185,9 +173,6 @@ export default function SolitaireGame() {
     const foundation = foundations[foundationIndex];
     const topFoundationCard = foundation[foundation.length - 1];
 
-    // Regras da Fundação:
-    // 1. Fundação vazia aceita apenas Ás (valueNum === 1)
-    // 2. Mesma cor/naipe e valor sequencial (ex: 2 de ♥ sobre Ás de ♥)
     const isValidMove =
       (!topFoundationCard && cardToMove.valueNum === 1) ||
       (topFoundationCard &&
@@ -199,7 +184,6 @@ export default function SolitaireGame() {
       newFoundations[foundationIndex] = [...foundation, cardToMove];
       setFoundations(newFoundations);
 
-      // Remover da origem
       if (selectedCard.source === 'waste') {
         setWaste(waste.slice(0, waste.length - 1));
       } else {
@@ -208,9 +192,7 @@ export default function SolitaireGame() {
         setTableau(newTableau);
       }
 
-      // Checar vitória (52 cartas nas fundações)
-      const totalInFoundations =
-        newFoundations.reduce((acc, current) => acc + current.length, 0);
+      const totalInFoundations = newFoundations.reduce((acc, curr) => acc + curr.length, 0);
       if (totalInFoundations === 52) {
         Alert.alert('Parabéns!', 'Você venceu o jogo!');
       }
@@ -219,7 +201,6 @@ export default function SolitaireGame() {
     setSelectedCard(null);
   };
 
-  // Selecionar carta do Waste
   const handleWasteClick = () => {
     if (waste.length > 0) {
       setSelectedCard({
@@ -231,22 +212,19 @@ export default function SolitaireGame() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Botão de reiniciar */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.button} onPress={startNewGame}>
           <Text style={styles.buttonText}>Novo Jogo</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Áreas Superiores: Stock, Waste e Foundations */}
+      {/* Áreas Superiores */}
       <View style={styles.topSection}>
-        <View style={styles.row}>
-          {/* Stock */}
+        <View style={styles.stockWasteRow}>
           <TouchableOpacity style={[styles.card, styles.cardBack]} onPress={handleStockClick}>
             <Text style={styles.cardBackText}>{stock.length}</Text>
           </TouchableOpacity>
 
-          {/* Waste */}
           <TouchableOpacity
             style={[
               styles.card,
@@ -254,16 +232,11 @@ export default function SolitaireGame() {
             ]}
             onPress={handleWasteClick}
           >
-            {waste.length > 0 ? (
-              <CardView card={waste[waste.length - 1]} />
-            ) : (
-              <View />
-            )}
+            {waste.length > 0 ? <CardView card={waste[waste.length - 1]} /> : <View />}
           </TouchableOpacity>
         </View>
 
-        {/* Foundations (4 pilhas) */}
-        <View style={styles.row}>
+        <View style={styles.foundationsRow}>
           {foundations.map((foundation, index) => {
             const topCard = foundation[foundation.length - 1];
             return (
@@ -279,152 +252,152 @@ export default function SolitaireGame() {
         </View>
       </View>
 
-      {/* Tableau (7 Colunas) */}
-      <ScrollView contentContainerStyle={styles.tableauContainer} horizontal>
-        <View style={styles.row}>
-          {tableau.map((column, colIndex) => (
-            <TouchableOpacity
-              key={colIndex}
-              style={styles.column}
-              activeOpacity={0.8}
-              onPress={() => handleTableauCardClick(colIndex, column.length - 1)}
-            >
-              {column.length === 0 ? (
-                <View style={styles.cardHolder} />
-              ) : (
-                column.map((card, cardIndex) => {
-                  const isSelected =
-                    selectedCard?.source === 'tableau' &&
-                    selectedCard?.colIndex === colIndex &&
-                    selectedCard?.cardIndex <= cardIndex;
+      {/* Tableau (Mesa Principal) */}
+      <View style={styles.tableauContainer}>
+        {tableau.map((column, colIndex) => (
+          <TouchableOpacity
+            key={colIndex}
+            style={styles.column}
+            activeOpacity={0.8}
+            onPress={() => handleTableauCardClick(colIndex, column.length - 1)}
+          >
+            {column.length === 0 ? (
+              <View style={styles.cardHolder} />
+            ) : (
+              column.map((card, cardIndex) => {
+                const isSelected =
+                  selectedCard?.source === 'tableau' &&
+                  selectedCard?.colIndex === colIndex &&
+                  selectedCard?.cardIndex <= cardIndex;
 
-                  return (
-                    <TouchableOpacity
-                      key={card.id}
-                      activeOpacity={0.9}
-                      style={[
-                        styles.tableauCard,
-                        { top: cardIndex * 22 },
-                        isSelected && styles.selectedCard,
-                      ]}
-                      onPress={() => handleTableauCardClick(colIndex, cardIndex)}
-                    >
-                      {card.faceUp ? (
-                        <CardView card={card} />
-                      ) : (
-                        <View style={[styles.card, styles.cardBack]} />
-                      )}
-                    </TouchableOpacity>
-                  );
-                })
-              )}
-            </TouchableOpacity>
-          ))}
-        </View>
-      </ScrollView>
+                return (
+                  <TouchableOpacity
+                    key={card.id}
+                    activeOpacity={0.9}
+                    style={[
+                      styles.tableauCard,
+                      { top: cardIndex * (CARD_HEIGHT * 0.28) },
+                      isSelected && styles.selectedCard,
+                    ]}
+                    onPress={() => handleTableauCardClick(colIndex, cardIndex)}
+                  >
+                    {card.faceUp ? (
+                      <CardView card={card} />
+                    ) : (
+                      <View style={[styles.card, styles.cardBack]} />
+                    )}
+                  </TouchableOpacity>
+                );
+              })
+            )}
+          </TouchableOpacity>
+        ))}
+      </View>
     </SafeAreaView>
   );
 }
 
-// Componente para renderizar a carta
 const CardView = ({ card }) => (
   <View style={styles.card}>
-    <Text style={[styles.cardText, { color: card.color }]}>
-      {card.value}
-    </Text>
-    <Text style={[styles.cardSuit, { color: card.color }]}>
-      {card.suit}
-    </Text>
+    <Text style={[styles.cardText, { color: card.color }]}>{card.value}</Text>
+    <Text style={[styles.cardSuit, { color: card.color }]}>{card.suit}</Text>
   </View>
 );
-
-const { width } = Dimensions.get('window');
-const CARD_WIDTH = Math.floor(width / 8.5);
-const CARD_HEIGHT = Math.floor(CARD_WIDTH * 1.4);
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#1b5e20',
-    paddingTop: 20,
+    paddingTop: 12,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
   },
   button: {
     backgroundColor: '#fff',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
     borderRadius: 8,
+    elevation: 3,
   },
   buttonText: {
     fontWeight: 'bold',
     color: '#1b5e20',
+    fontSize: 16,
   },
   topSection: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 10,
-    marginBottom: 20,
+    paddingHorizontal: SCREEN_PADDING,
+    marginBottom: 16,
   },
-  row: {
+  stockWasteRow: {
     flexDirection: 'row',
+    gap: GAP,
+  },
+  foundationsRow: {
+    flexDirection: 'row',
+    gap: GAP,
   },
   card: {
     width: CARD_WIDTH,
     height: CARD_HEIGHT,
-    backgroundColor: '#fff',
-    borderRadius: 5,
+    backgroundColor: '#ffffff',
+    borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: '#b0bec5',
     justifyContent: 'space-between',
-    padding: 4,
-    marginHorizontal: 2,
+    padding: 3,
   },
   cardHolder: {
     width: CARD_WIDTH,
     height: CARD_HEIGHT,
-    borderRadius: 5,
+    borderRadius: 6,
     borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.4)',
+    borderColor: 'rgba(255,255,255,0.35)',
     borderStyle: 'dashed',
     justifyContent: 'center',
     alignItems: 'center',
-    marginHorizontal: 2,
   },
   placeholderText: {
-    color: 'rgba(255,255,255,0.4)',
-    fontSize: 18,
+    color: 'rgba(255,255,255,0.35)',
+    fontSize: CARD_WIDTH * 0.4,
     fontWeight: 'bold',
   },
   cardBack: {
-    backgroundColor: '#0d47a1',
+    backgroundColor: '#1565c0',
     justifyContent: 'center',
     alignItems: 'center',
   },
   cardBackText: {
-    color: '#fff',
+    color: '#ffffff',
     fontWeight: 'bold',
+    fontSize: CARD_WIDTH * 0.35,
   },
   cardText: {
-    fontSize: 12,
+    fontSize: CARD_WIDTH * 0.3,
     fontWeight: 'bold',
+    lineHeight: CARD_WIDTH * 0.32,
   },
   cardSuit: {
-    fontSize: 16,
+    fontSize: CARD_WIDTH * 0.38,
     alignSelf: 'flex-end',
+    lineHeight: CARD_WIDTH * 0.4,
   },
   selectedCard: {
     borderColor: '#ffeb3b',
-    borderWidth: 2.5,
+    borderWidth: 3,
   },
   tableauContainer: {
-    paddingHorizontal: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: SCREEN_PADDING,
+    flex: 1,
   },
   column: {
-    width: CARD_WIDTH + 4,
-    height: 400,
+    width: CARD_WIDTH,
+    height: '100%',
     position: 'relative',
   },
   tableauCard: {
@@ -433,3 +406,4 @@ const styles = StyleSheet.create({
     right: 0,
   },
 });
+    
