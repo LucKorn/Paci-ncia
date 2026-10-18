@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Solitaire Game",
-    "slug": "solitaire-game",
+    "slug": "paciencia",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
