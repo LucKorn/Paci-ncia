@@ -4,7 +4,6 @@ import {
   Text,
   View,
   TouchableOpacity,
-  ScrollView,
   SafeAreaView,
   Alert,
   Dimensions,
@@ -13,10 +12,8 @@ import {
 const SUITS = ['♠', '♥', '♦', '♣'];
 const VALUES = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
 
-// Helper para cor da carta
 const getSuitColor = (suit) => (suit === '♥' || suit === '♦' ? '#d32f2f' : '#1a1a1a');
 
-// Criar e embaralhar o baralho (Fisher-Yates)
 const createDeck = () => {
   let deck = [];
   let id = 1;
@@ -39,14 +36,13 @@ const createDeck = () => {
   return deck;
 };
 
-// Cálculo dinâmico para preencher exatamente a tela
-const SCREEN_PADDING = 8;
-const GAP = 3;
+const SCREEN_PADDING = 4;
+const GAP = 2;
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// Largura da carta calculada para caber 7 colunas perfeitamente na tela
 const CARD_WIDTH = Math.floor((SCREEN_WIDTH - SCREEN_PADDING * 2 - GAP * 6) / 7);
-const CARD_HEIGHT = Math.floor(CARD_WIDTH * 1.42);
+const CARD_HEIGHT = Math.floor(CARD_WIDTH * 1.45);
+const TABLEAU_OFFSET = Math.floor(CARD_HEIGHT * 0.35); // Espaço garantido no topo para cada carta
 
 export default function SolitaireGame() {
   const [stock, setStock] = useState([]);
@@ -276,7 +272,7 @@ export default function SolitaireGame() {
                     activeOpacity={0.9}
                     style={[
                       styles.tableauCard,
-                      { top: cardIndex * (CARD_HEIGHT * 0.28) },
+                      { top: cardIndex * TABLEAU_OFFSET },
                       isSelected && styles.selectedCard,
                     ]}
                     onPress={() => handleTableauCardClick(colIndex, cardIndex)}
@@ -297,10 +293,13 @@ export default function SolitaireGame() {
   );
 }
 
+// Componente da Carta focado em visibilidade máxima
 const CardView = ({ card }) => (
   <View style={styles.card}>
-    <Text style={[styles.cardText, { color: card.color }]}>{card.value}</Text>
-    <Text style={[styles.cardSuit, { color: card.color }]}>{card.suit}</Text>
+    <View style={styles.cardHeader}>
+      <Text style={[styles.cardText, { color: card.color }]}>{card.value}</Text>
+      <Text style={[styles.cardSuit, { color: card.color }]}>{card.suit}</Text>
+    </View>
   </View>
 );
 
@@ -308,29 +307,29 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#1b5e20',
-    paddingTop: 12,
+    paddingTop: 10,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   button: {
     backgroundColor: '#fff',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
     borderRadius: 8,
     elevation: 3,
   },
   buttonText: {
     fontWeight: 'bold',
     color: '#1b5e20',
-    fontSize: 16,
+    fontSize: 14,
   },
   topSection: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: SCREEN_PADDING,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   stockWasteRow: {
     flexDirection: 'row',
@@ -344,16 +343,31 @@ const styles = StyleSheet.create({
     width: CARD_WIDTH,
     height: CARD_HEIGHT,
     backgroundColor: '#ffffff',
-    borderRadius: 6,
+    borderRadius: 5,
     borderWidth: 1,
     borderColor: '#b0bec5',
+    padding: 1,
+    overflow: 'hidden',
+  },
+  cardHeader: {
+    flexDirection: 'row',
     justifyContent: 'space-between',
-    padding: 3,
+    alignItems: 'center',
+    paddingHorizontal: 2,
+    paddingTop: 1,
+  },
+  cardText: {
+    fontSize: Math.floor(CARD_WIDTH * 0.48), // Número bem maior
+    fontWeight: '900',
+    lineHeight: Math.floor(CARD_WIDTH * 0.52),
+  },
+  cardSuit: {
+    fontSize: Math.floor(CARD_WIDTH * 0.42), // Naipe proporcional
   },
   cardHolder: {
     width: CARD_WIDTH,
     height: CARD_HEIGHT,
-    borderRadius: 6,
+    borderRadius: 5,
     borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.35)',
     borderStyle: 'dashed',
@@ -375,19 +389,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: CARD_WIDTH * 0.35,
   },
-  cardText: {
-    fontSize: CARD_WIDTH * 0.3,
-    fontWeight: 'bold',
-    lineHeight: CARD_WIDTH * 0.32,
-  },
-  cardSuit: {
-    fontSize: CARD_WIDTH * 0.38,
-    alignSelf: 'flex-end',
-    lineHeight: CARD_WIDTH * 0.4,
-  },
   selectedCard: {
     borderColor: '#ffeb3b',
-    borderWidth: 3,
+    borderWidth: 2.5,
   },
   tableauContainer: {
     flexDirection: 'row',
